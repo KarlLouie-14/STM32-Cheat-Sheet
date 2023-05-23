@@ -193,26 +193,24 @@ else {
   WS2812_Send();
 }
 --------------------------------------------------------------------------
-// Basic UART RX & TX - DMA (non blocking) - RX NOT WORKING PROPERLY!
-unsigned char Rx_data[7];  //  creating a buffer of 7 bytes
-uint8_t count = 0;
-char str[10];
+// Basic UART RX functionality
+#define Rxbuf_SIZE 7
+#define Mainbuf_SIZE 10
 
-void HAL_UARTEx_RxHalfCpltCallback(UART_HandleTypeDef *huart, uint16_t Size){
-	HAL_UART_Transmit_DMA(&hlpuart1, Rx_data, strlen (Rx_data));	// Transmit received data (not working as of right now)
-	HAL_UARTEx_ReceiveToIdle_DMA(&hlpuart1, Rx_data, sizeof(Rx_data));
+uint8_t Rx_data[Rxbuf_SIZE];
+uint8_t Main_data[Mainbuf_SIZE];
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
+	//HAL_UART_Transmit_DMA(&hlpuart1, Rx_data, strlen (Rx_data));
+	memcpy(Main_data, Rx_data, Size);
+	HAL_UARTEx_ReceiveToIdle_DMA (&hlpuart1, Rx_data, sizeof(Rx_data));  // Receive 6 Bytes of data
 	__HAL_DMA_DISABLE_IT(&hdma_lpuart1_rx, DMA_IT_HT);
-	memset(Rx_data, 0, strlen (Rx_data));
-}
-
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
-	//	__HAL_DMA_DISABLE_IT(&hdma_usart2_tx, DMA_IT_HT);
-	datasentflag=1;
+	//memset(Rx_data, 0, strlen (Rx_data));
 }
 
 //main()
- HAL_UARTEx_ReceiveToIdle_DMA (&hlpuart1, Rx_data, sizeof(Rx_data));  // Receive 6 Bytes of data
- __HAL_DMA_DISABLE_IT(&hdma_lpuart1_rx, DMA_IT_HT);
+	HAL_UARTEx_ReceiveToIdle_DMA (&hlpuart1, Rx_data, sizeof(Rx_data));  // Receive 6 Bytes of data
+	__HAL_DMA_DISABLE_IT(&hdma_lpuart1_rx, DMA_IT_HT);
 -------------------------------------------------------------------------------
 
 
