@@ -73,7 +73,6 @@ union RGB_DEF {
 		uint8_t green;
 		uint8_t red;
 		uint8_t blue;
-
 	};
 };
 
@@ -89,12 +88,74 @@ struct HDD {
 } Hdd[HDD_SIZE];
 
 void initialize_Hdd (){
-    Hdd[ 0].enable.port = GPIOA; Hdd[ 0].enable.pin = GPIO_PIN_15; Hdd[ 0].detect.port = GPIOA; Hdd[ 0].detect.pin = GPIO_PIN_0;  Hdd[ 0].led.led_number = 0;  Hdd[ 0].led.red = 0;   Hdd[ 0].led.green = 0;   Hdd[ 0].led.blue = 0;
+	Hdd[ 0].enable.port = GPIOA; Hdd[ 0].enable.pin = GPIO_PIN_15; Hdd[ 0].detect.port = GPIOA; Hdd[ 0].detect.pin = GPIO_PIN_0;  Hdd[ 0].led.led_number = 0;  Hdd[ 0].led.red = 0;   Hdd[ 0].led.green = 0;   Hdd[ 0].led.blue = 0;
 	Hdd[ 1].enable.port = GPIOB; Hdd[ 1].enable.pin = GPIO_PIN_3;  Hdd[ 1].detect.port = GPIOD; Hdd[ 1].detect.pin = GPIO_PIN_2;  Hdd[ 1].led.led_number = 1;  Hdd[ 1].led.red = 0;   Hdd[ 1].led.green = 0;   Hdd[ 1].led.blue = 0;
     //...
     //Send
 }
 
+//main()
+initialize_Hdd();
+--------------------------------------------------------------------------
+// Misc Functions
+#define MAX_LED 40
+#define USE_BRIGHTNESS 1
+#define PI 3.14159265
+#define HDD_SIZE 40
+
+uint8_t LED_Data[MAX_LED][4];
+uint8_t LED_Mod[MAX_LED][4];  // for brightness
+uint16_t pwmData[(24*MAX_LED)+50];
+int datasentflag=0;
+
+void Set_LED (int LEDnum, int Red, int Green, int Blue){
+	LED_Data[LEDnum][0] = LEDnum;
+	LED_Data[LEDnum][1] = Green;
+	LED_Data[LEDnum][2] = Red;
+	LED_Data[LEDnum][3] = Blue;
+}
+
+void WS2812_Send (void){
+	uint32_t indx=0;
+	uint32_t color;
+	Set_Brightness(5);
+
+	for (int i= 0; i<MAX_LED; i++){
+		#if USE_BRIGHTNESS
+			color = ((LED_Mod[i][1]<<16) | (LED_Mod[i][2]<<8) | (LED_Mod[i][3]));
+		#else
+			color = ((LED_Data[i][1]<<16) | (LED_Data[i][2]<<8) | (LED_Data[i][3]));
+		#endif
+
+		for (int i=23; i>=0; i--){
+			if (color&(1<<i)){			
+				pwmData[indx] = 26;  // 2/3 of 40
+			} else pwmData[indx] = 14;  // 1/3 of 40
+			indx++;
+		}
+	}
+
+	for (int i=0; i<50; i++){	{
+		pwmData[indx] = 0;
+		indx++;
+	}
+
+	HAL_TIM_PWM_Start_DMA(&htim2, TIM_CHANNEL_2, (uint32_t *)pwmData, indx);
+	while (!datasentflag){};
+	datasentflag = 0;
+}
+
+void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim){
+	HAL_TIM_PWM_Stop_DMA(&htim2, TIM_CHANNEL_2);
+	datasentflag=1;
+}
+	
+//main()
+Set_LED(0, 255, 0, 0);
+WS2812_Send();
+	
+--------------------------------------------------------------------------
+// Input Scan using above data structure
 //main()
 volatile int diskPresent = 0;
 
@@ -131,7 +192,27 @@ else {
   }
   WS2812_Send();
 }
+--------------------------------------------------------------------------
+// Basic UART RX & TX - DMA (non blocking)
+unsigned char Rx_data[7];  //  creating a buffer of 7 bytes
+uint8_t count = 0;
+char str[10];
 
+void HAL_UARTEx_RxHalfCpltCallback(UART_HandleTypeDef *huart, uint16_t Size){
+	HAL_UART_Transmit_DMA(&hlpuart1, Rx_data, strlen (Rx_data));	// Transmit received data (not working as of right now)
+	HAL_UARTEx_ReceiveToIdle_DMA(&hlpuart1, Rx_data, sizeof(Rx_data));
+	__HAL_DMA_DISABLE_IT(&hdma_lpuart1_rx, DMA_IT_HT);
+	memset(Rx_data, 0, strlen (Rx_data));
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
+	//	__HAL_DMA_DISABLE_IT(&hdma_usart2_tx, DMA_IT_HT);
+	datasentflag=1;
+}
+
+//main()
+ HAL_UARTEx_ReceiveToIdle_DMA (&hlpuart1, Rx_data, sizeof(Rx_data));  // Receive 6 Bytes of data
+ __HAL_DMA_DISABLE_IT(&hdma_lpuart1_rx, DMA_IT_HT);
 
 
 
