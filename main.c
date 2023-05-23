@@ -1,8 +1,8 @@
+// I2C BUS SCAN - WORKING!
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-// I2C BUS SCAN
 uint8_t Buffer[25] = {0};
 uint8_t Space[] = " - ";
 uint8_t StartMSG[] = "Starting I2C Scanning: \r\n";
@@ -32,7 +32,7 @@ HAL_UART_Transmit(&hlpuart1, EndMSG, sizeof(EndMSG), 10000);
 //while()
 
 --------------------------------------------------------------
-//I2C Check Device
+//I2C Check Particular Device - WORKING!
 static const uint8_t GPIO_ADDR = 0x20 << 1;	// 0x40
 static const uint8_t ADC1_ADDR = 0x48 << 1;	// 0x90
 static const uint8_t ADC2_ADDR = 0x4A << 1;	// 0x94
@@ -65,7 +65,7 @@ HAL_UART_Transmit(&hlpuart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
 HAL_Delay(500);
 
 ------------------------------------------------------------
-// Data Structure
+// Data Structure - WORKING!
 union RGB_DEF {
 	uint32_t bits;
 	struct {
@@ -97,7 +97,7 @@ void initialize_Hdd (){
 //main()
 initialize_Hdd();
 --------------------------------------------------------------------------
-// Misc Functions
+// Misc Functions - WORKING!
 #define MAX_LED 40
 #define USE_BRIGHTNESS 1
 #define PI 3.14159265
@@ -155,7 +155,7 @@ Set_LED(0, 255, 0, 0);
 WS2812_Send();
 	
 --------------------------------------------------------------------------
-// Input Scan using above data structure
+// Input Scan using above data structure - WORKING!
 //main()
 volatile int diskPresent = 0;
 
@@ -193,7 +193,7 @@ else {
   WS2812_Send();
 }
 --------------------------------------------------------------------------
-// Basic UART RX & TX - DMA (non blocking)
+// Basic UART RX & TX - DMA (non blocking) - RX NOT WORKING PROPERLY!
 unsigned char Rx_data[7];  //  creating a buffer of 7 bytes
 uint8_t count = 0;
 char str[10];
@@ -213,6 +213,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 //main()
  HAL_UARTEx_ReceiveToIdle_DMA (&hlpuart1, Rx_data, sizeof(Rx_data));  // Receive 6 Bytes of data
  __HAL_DMA_DISABLE_IT(&hdma_lpuart1_rx, DMA_IT_HT);
+-------------------------------------------------------------------------------
 
 
 
